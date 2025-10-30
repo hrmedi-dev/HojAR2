@@ -1,0 +1,18 @@
+body {
+  font-family: 'Raleway', sans-serif;
+  text-align: center;
+  background: #f5f4f0;
+  color: #1a1423;
+  margin-top: 50px;
+}
+button {
+  background: #fab803;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+h1 {
+  color: #fab803;
+}

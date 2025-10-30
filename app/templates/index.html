@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reconocedor de hojas 🌿</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <h1>🌳 Reconocedor de hojas</h1>
+  <input type="file" id="fileInput" accept="image/*">
+  <button onclick="enviar()">Analizar</button>
+  <p id="resultado"></p>
+
+  <script>
+    async function enviar() {
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+      if (!file) return alert('Seleccioná una imagen primero');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/predict', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (data.error) {
+        document.getElementById('resultado').textContent = "⚠️ " + data.error;
+      } else {
+        document.getElementById('resultado').textContent = "🌿 Es una hoja de: " + data.prediction;
+      }
+    }
+  </script>
+</body>
+</html>
