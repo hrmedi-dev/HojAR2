@@ -11,19 +11,6 @@ import os
 app = Flask(__name__)
 
 # ----------------------------------
-# CARGAR MODELO
-# ----------------------------------
-
-model_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'leaf_model.pth')
-checkpoint = torch.load(model_path, map_location='cpu')
-class_names = checkpoint['class_names']
-
-model = models.resnet50(pretrained=False)
-model.fc = torch.nn.Linear(model.fc.in_features, len(class_names))
-model.load_state_dict(checkpoint['model_state_dict'])
-model.eval()
-
-# ----------------------------------
 # TRANSFORMACIÓN DE IMAGEN
 # ----------------------------------
 transform = transforms.Compose([
@@ -32,6 +19,23 @@ transform = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406],
                          [0.229, 0.224, 0.225])
 ])
+
+# ----------------------------------
+# FUNCIÓN PARA CARGAR EL MODELO SOLO CUANDO SE NECESITE
+# ----------------------------------
+def load_model():
+    """Carga el modelo solo cuando se necesita, para evitar exceso de RAM en Render."""
+    model_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'leaf_model.pth')
+
+    checkpoint = torch.load(model_path, map_location='cpu')
+    class_names = checkpoint['class_names']
+
+    model = models.resnet50(pretrained=False)
+    model.fc = torch.nn.Linear(model.fc.in_features, len(class_names))
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.eval()
+
+    return model, class_names
 
 # ----------------------------------
 # RUTA PRINCIPAL
@@ -50,7 +54,14 @@ def predict():
 
     file = request.files['file']
     img_bytes = file.read()
-    img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+
+    try:
+        img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+    except Exception as e:
+        return jsonify({'error': f'No se pudo procesar la imagen: {str(e)}'})
+
+    # Cargar el modelo en este punto (solo cuando se llama)
+    model, class_names = load_model()
 
     img_t = transform(img).unsqueeze(0)
     with torch.no_grad():
@@ -58,10 +69,14 @@ def predict():
         _, pred = torch.max(outputs, 1)
         label = class_names[pred.item()]
 
+    # Liberar memoria después de predecir
+    del model
+    torch.cuda.empty_cache()
+
     return jsonify({'prediction': label})
 
 # ----------------------------------
-# EJECUCIÓN
+# EJECUCIÓN LOCAL
 # ----------------------------------
 if __name__ == '__main__':
     app.run(debug=True)
