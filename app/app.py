@@ -3,6 +3,7 @@ import torch
 from torchvision import models, transforms
 from PIL import Image
 import io
+import os
 
 # ----------------------------------
 # CONFIGURACIÓN DE FLASK
@@ -12,7 +13,9 @@ app = Flask(__name__)
 # ----------------------------------
 # CARGAR MODELO
 # ----------------------------------
-checkpoint = torch.load('../model/leaf_model.pth', map_location='cpu')
+
+model_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'leaf_model.pth')
+checkpoint = torch.load(model_path, map_location='cpu')
 class_names = checkpoint['class_names']
 
 model = models.resnet50(pretrained=False)
